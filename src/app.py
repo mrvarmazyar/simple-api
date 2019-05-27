@@ -9,4 +9,4 @@ from users import routes
 create_tables()
 
 
-run(default_app(), port=8080)
+run(default_app(), host='0.0.0.0', port=8080)
