@@ -10,4 +10,4 @@ COPY src .
 
 EXPOSE 8080
 
-CMD ["python3", "app.py"]
+CMD ["python3", "-u" , "app.py"]
