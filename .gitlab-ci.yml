@@ -1,0 +1,53 @@
+image: docker:latest
+services:
+  - docker:dind
+stages:
+  - build
+  - test
+  - deploy
+
+build:
+  stage: build
+  script:
+    - docker build -t registry.gitlab.com/mohammadvarmazyar/helloworld/api:$CI_JOB_ID api/
+    - docker build -t registry.gitlab.com/mohammadvarmazyar/helloworld/api:latest api/
+    ##### $DOCKER_LOGIN_KEY can be obtained in GitLab as a Personal Access Token #####    
+    - docker login -u mohammadvarmazyar -p $DOCKER_LOGIN_KEY registry.gitlab.com
+    - docker images
+    - docker push registry.gitlab.com/mohammadvarmazyar/helloworld/api:$CI_JOB_ID
+    - docker push registry.gitlab.com/mohammadvarmazyar/helloworld/api:latest
+
+##### Unit tests and Integration tests #####
+test:
+  stage: test 
+  image: python:3-alpine
+  script:
+    - docker run -d --name "$CI_PROJECT_NAME-$CI_PIPELINE_ID" registry.gitlab.com/mohammadvarmazyar/helloworld/api:$CI_JOB_ID
+    - docker exec -i -u root $CI_PROJECT_NAME-$CI_PIPELINE_ID bash -c 'python3 -m unittest discover -s tests/ -p '*_test.py' -v'
+    - docker rm -f $CI_PROJECT_NAME-$CI_PIPELINE_ID
+  only:
+    - master
+
+deploy:
+  stage: deploy
+  image: python:3-alpine
+  variables:
+    AWS_DEFAULT_REGION: "us-east-2"
+  before_script:
+    ##### Install the AWS ECS-CLI #####
+    - apk add --update curl
+    - curl -o /usr/local/bin/ecs-cli https://s3.amazonaws.com/amazon-ecs-cli/ecs-cli-linux-amd64-latest
+    - chmod +x /usr/local/bin/ecs-cli
+  script:
+    ##### Configure ECS-CLI, run the container and scale to 2 #####
+    - ecs-cli configure --region $AWS_DEFAULT_REGION --access-key $AWS_ACCESS_KEY_ID --secret-key $AWS_SECRET_ACCESS_KEY --cluster CI-MyCluster-API
+    - ecs-cli up --keypair $AWS_KEY_PAIR --capability-iam --size 2 --instance-type t2.micro --vpc vpc-xxxxxxx --subnets subnet-123abc,subnet-321cba
+    ##### This docker-compose.yml is the one described above #####
+    - ecs-cli compose --file api/docker-compose.yml service up --target-group-arn $PROD_TARGET_GROUP_ARN --container-name api --container-port 8080 --role ecsServiceRole
+    - ecs-cli compose --file api/docker-compose.yml service scale 2
+  environment:
+    name: ci
+    ##### This is the URL seen under 'DNS name' when the LB was created #####
+    url: $PROD_LOAD_BALANCER_URL
+  only:
+    - master
