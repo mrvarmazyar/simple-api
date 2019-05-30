@@ -2,12 +2,12 @@ from datetime import date
 
 from peewee import Model, CharField, DateField, DoesNotExist, IntegrityError
 
-from db import db_connection
+import db
 
 
 class BaseModel(Model):
     class Meta:
-        database = db_connection
+        database = db.connection
 
     does_not_exists = DoesNotExist
     integrity_error = IntegrityError

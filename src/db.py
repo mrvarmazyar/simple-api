@@ -1,6 +1,9 @@
-from peewee import SqliteDatabase
+from peewee import PostgresqlDatabase
 
+import configs
 
-db_connection = SqliteDatabase('app.db')
-
-db_connection.connect()
+connection = PostgresqlDatabase(configs.DB.NAME,
+                                host=configs.DB.HOST,
+                                user=configs.DB.USER,
+                                password=configs.DB.PASSWORD,
+                                port=configs.DB.PORT)
