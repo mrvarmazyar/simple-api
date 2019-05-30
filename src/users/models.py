@@ -14,6 +14,9 @@ class BaseModel(Model):
 
 
 class User(BaseModel):
+    class Meta:
+        db_table = 'users'
+
     username = CharField(unique=True)
     birthday = DateField()
 
