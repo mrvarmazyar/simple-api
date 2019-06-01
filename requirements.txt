@@ -2,3 +2,4 @@ bottle
 jsonschema
 peewee
 requests
+psycopg2-binary

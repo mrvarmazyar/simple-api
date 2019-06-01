@@ -2,7 +2,7 @@ import json
 
 import jsonschema
 
-from db import db_connection
+import db
 from users.models import User
 
 
@@ -10,7 +10,7 @@ def create_tables():
 
     # It will be an idempotent action: if there is already a corresponding table,
     #   following would leave it untouched
-    db_connection.create_tables([User])
+    db.connection.create_tables([User])
 
 
 def _load_json(file_path):

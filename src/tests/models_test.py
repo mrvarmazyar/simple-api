@@ -4,6 +4,7 @@ import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+import db
 from users.models import User
 
 
@@ -13,6 +14,7 @@ class UserModelTests(unittest.TestCase):
         User.create(username='testUsername', birthday='1990-02-19')
 
     def tearDown(self):
+        db.connection.rollback()
         User.delete().where(User.username == 'testUsername').execute()
 
     def test_create_username(self):

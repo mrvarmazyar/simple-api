@@ -3,8 +3,10 @@ from datetime import datetime, date
 
 from bottle import request, response
 
-from .models import User
+import db
 from snippets import validate_data
+
+from .models import User
 from .constants import CREATE_SCHEMA_PATH, UPDATE_SCHEMA_PATH
 
 
@@ -31,6 +33,7 @@ def create_user():
     try:
         user = User.create(**request.json)
     except User.integrity_error:
+        db.connection.rollback()
         response.status = HTTPStatus.CONFLICT
         return {'error': 'username already exists'}
 
@@ -63,6 +66,7 @@ def update_user(username):
     try:
         user.save()
     except User.integrity_error:
+        db.connection.rollback()
         response.status = HTTPStatus.CONFLICT
         return {'error': 'username already exists'}
 
