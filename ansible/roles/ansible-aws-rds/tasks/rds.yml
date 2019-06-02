@@ -1,0 +1,59 @@
+---
+
+## For more info check http://docs.ansible.com/ansible/rds_module.html
+- name: rds | Provision a set of instances
+  rds:
+     vpc_security_groups: "{{ item.security_group_id | default(omit) }}"
+     instance_type: "{{ item.instance_type }}"
+     db_engine: "{{ item.db_engine | default(omit) }}"
+     region: "{{ item.region | default(aws_rds_region) }}"
+     multi_zone: "{{ item.multi_zone | default(omit) }}"
+     wait: "{{ item.wait | default(omit) }}"
+     wait_timeout: "{{ item.wait_timeout | default(aws_rds_wait) }}"
+     tags: "{{ item.instance_tags | default(omit) }}"
+     publicly_accessible: "{{ item.publicly_accessible | default(omit) }}"
+     db_name: "{{ item.db_name | default(omit) }}"
+     subnet: "{{ item.vpc_subnet | default(omit) }}"
+     zone: "{{ item.zone | default(omit) }}"
+     command: "{{ item.command | default('create') }}"
+     size: "{{ item.size | default(omit) }}"
+     instance_name: "{{ item.instance_name | default(omit) }}"
+     new_instance_name: "{{ item.new_instance_name | default(omit) }}"
+     password: "{{ item.password | default(omit) }}"
+     username: "{{ item.username | default(omit) }}"
+     aws_rds_access_key: "{{ item.access_key | default(omit) }}"
+     aws_rds_secret_key: "{{ item.secret_key | default(omit) }}"
+     engine_version: "{{ item.engine_version | default(omit) }}"
+     backup_retention: "{{ item.backup_retention | default(omit) }}"
+     backup_window: "{{ item.backup_window | default(omit) }}"
+     source_instance: "{{ item.source_instance | default(omit) }}"
+     port: "{{ item.port | default(omit) }}"
+     iops: "{{ item.iops | default(omit) }}"
+     character_set_name: "{{ item.character_set_name | default(omit) }}"
+  connection: local
+  delegate_to: localhost
+  register: rds_server
+  async: "{{ aws_rds_wait }}"
+  poll: 0
+  with_items: "{{ aws_rds }}"
+
+- name: rds | async array
+  async_status: jid={{ item.ansible_job_id }}
+  register: job_result
+  until: job_result.finished
+  with_items: "{{ rds_server.results }}"
+  retries: "{{ aws_rds_async_retries }}"
+
+# Get facts about an instance
+- name: get database facts
+    command: facts
+    instance_name: "{{ item.instance_name | default(omit) }}"
+  register: new_database_facts
+
+- name: rds | Set result fact
+  set_fact:
+     #  Overwrite rds_server variable with actual run result for later usage by other roles (e.g. aws-route53).
+     rds_server={{ job_result.results[0] }}
+
+- debug:
+    msg: "The new db endpoint is {{ rds.instance.endpoint }}"
